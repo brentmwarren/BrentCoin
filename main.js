@@ -7,20 +7,33 @@ class Block {
     this.data = data;
     this.previousHash = previousHash;
     this.hash = this.calculateHash();
+    this.nonce = 0;
   }
   calculateHash() {
     return SHA256(
       this.index +
         this.previousHash +
         this.timestamp +
-        JSON.stringify(this.data)
+        JSON.stringify(this.data) +
+        this.nonce
     ).toString();
+  }
+
+  mineBlock(difficulty) {
+    while (
+      this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")
+    ) {
+      this.nonce++;
+      this.hash = this.calculateHash();
+    }
+    console.log("Block mined: " + this.hash);
   }
 }
 
 class Blockchain {
   constructor() {
     this.chain = [this.createGenesisBlock()];
+    this.difficulty = 4;
   }
 
   createGenesisBlock() {
@@ -33,7 +46,8 @@ class Blockchain {
 
   addBlock(newBlock) {
     newBlock.previousHash = this.getLatestBlock().hash;
-    newBlock.hash = newBlock.calculateHash();
+    // newBlock.hash = newBlock.calculateHash();
+    newBlock.mineBlock(this.difficulty);
     this.chain.push(newBlock);
   }
 
@@ -55,12 +69,16 @@ class Blockchain {
 }
 
 let brentCoin = new Blockchain();
-brentCoin.addBlock(new Block(1, "01/01/2021", { amount: 4 }));
-brentCoin.addBlock(new Block(2, "01/01/2021", { amount: 10 }));
 
-console.log(JSON.stringify(brentCoin, null, 4));
-console.log(`Is blockchain vaid? ` + brentCoin.isChainValid());
+console.log(`Mining block 1...`);
+brentCoin.addBlock(new Block(1, "02/22/2021", { amount: 4 }));
 
-// brentCoin.chain[1].data = { amount: 100 };
+console.log(`Mining block 2...`);
+brentCoin.addBlock(new Block(2, "02/22/2021", { amount: 10 }));
 
-console.log(`Is blockchain vaid? ` + brentCoin.isChainValid());
+// console.log(JSON.stringify(brentCoin, null, 4));
+// console.log(`Is blockchain vaid? ` + brentCoin.isChainValid());
+
+// // brentCoin.chain[1].data = { amount: 100 };
+
+// console.log(`Is blockchain vaid? ` + brentCoin.isChainValid());
