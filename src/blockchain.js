@@ -20,12 +20,15 @@ class Transaction {
 
     const hashTx = this.calculateHash();
     const sig = signingKey.sign(hashTx, "base64");
+
     this.signature = sig.toDER("hex");
   }
 
   isValid() {
+    // If the transaction doesn't have a from address we assume it's a
+    // mining reward and that it's valid. You could verify this in a
+    // different way (special field for instance)
     if (this.fromAddress === null) return true;
-
     if (!this.signature || this.signature.length === 0) {
       throw new Error("No signature in this transaction");
     }
@@ -61,6 +64,15 @@ class Block {
     }
     console.log("Block mined: " + this.hash);
   }
+  hasValidTransactions() {
+    for (const tx of this.transactions) {
+      if (!tx.isValid()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 
 class Blockchain {
@@ -91,7 +103,16 @@ class Blockchain {
     ];
   }
 
-  createTransaction(transaction) {
+  addTransaction(transaction) {
+    if (!transaction.fromAddress || !transaction.toAddress) {
+      throw new Error("Transaction must include from and to address");
+    }
+
+    // Verify the transactiion
+    if (!transaction.isValid()) {
+      throw new Error("Cannot add invalid transaction to chain");
+    }
+
     this.pendingTransactions.push(transaction);
   }
 
@@ -116,14 +137,15 @@ class Blockchain {
       const currentBlock = this.chain[i];
       const previousBlock = this.chain[i - 1];
 
-      if (currentBlock.hash !== currentBlock.calculateHash()) {
+      if (!currentBlock.hasValidTransactions()) {
         return false;
       }
 
-      if (currentBlock.previousHash !== previousBlock.hash) {
+      if (currentBlock.hash !== currentBlock.calculateHash()) {
         return false;
       }
     }
+
     return true;
   }
 }
